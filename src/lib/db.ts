@@ -3,7 +3,7 @@ import { MedicalRecord, ChatMessage, AuditLog, UserProfile } from '../types';
 import { encryptData, decryptData, vaultPassword } from './crypto';
 
 const DB_NAME = 'pmi_enterprise_db';
-const DB_VERSION = 2;
+const DB_VERSION = 3; // v3 adds vitals store
 
 export async function initDB(): Promise<IDBPDatabase> {
   return openDB(DB_NAME, DB_VERSION, {
@@ -19,6 +19,10 @@ export async function initDB(): Promise<IDBPDatabase> {
       }
       if (!db.objectStoreNames.contains('settings')) {
         db.createObjectStore('settings', { keyPath: 'id' });
+      }
+      // Added in v3
+      if (!db.objectStoreNames.contains('vitals')) {
+        db.createObjectStore('vitals', { keyPath: 'id' });
       }
     },
   });
@@ -126,12 +130,8 @@ export async function getAuditLogs(): Promise<AuditLog[]> {
 
 export async function wipeAllData() {
   const db = await initDB();
-  const tx = db.transaction(['records', 'messages', 'audit_logs', 'settings'], 'readwrite');
-  await Promise.all([
-    tx.objectStore('records').clear(),
-    tx.objectStore('messages').clear(),
-    tx.objectStore('audit_logs').clear(),
-    tx.objectStore('settings').clear(),
-  ]);
+  const stores = ['records', 'messages', 'audit_logs', 'settings', 'vitals'];
+  const tx = db.transaction(stores, 'readwrite');
+  await Promise.all(stores.map(s => tx.objectStore(s).clear()));
   await tx.done;
 }
