@@ -105,3 +105,120 @@ export async function generateGroundedResponse(query: string, context: SearchRes
 
   return response.text;
 }
+
+export async function generateClinicianBrief() {
+  const records = await getAllRecords();
+  const profile = await getProfile();
+  
+  if (records.length === 0) return null;
+
+  const contextText = records
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 15)
+    .map(r => `[${r.date}] ${r.title}: ${r.content.slice(0, 500)}`)
+    .join('\n\n');
+
+  const systemInstruction = `
+    You are a Senior Clinical Informaticist. Your task is to generate a "Clinician Brief"—a high-density, professional summary of a patient's medical history for their doctor.
+    
+    STRUCTURE:
+    1. Executive Summary: 2-3 sentences on current status.
+    2. Key Changes: Significant changes in labs, symptoms, or medications since the earliest record.
+    3. Potential Red Flags: Any concerning trends (e.g., rising BP, declining kidney function).
+    4. Suggested Discussion Points: Questions the patient should ask their doctor.
+
+    TONE: Professional, clinical, and objective.
+    LIMIT: 500 words.
+  `;
+
+  const prompt = `
+    Patient: ${profile?.name || 'Anonymous'}
+    Conditions: ${profile?.chronicConditions.join(', ') || 'None'}
+    Allergies: ${profile?.allergies.join(', ') || 'None'}
+    
+    Medical Records (Chronological):
+    ${contextText}
+  `;
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: prompt,
+    config: { systemInstruction }
+  });
+
+  return response.text;
+}
+
+export async function detectHealthTrends() {
+  const records = await getAllRecords();
+  if (records.length < 2) return null;
+
+  const contextText = records
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 10)
+    .map(r => `[${r.date}] ${r.title}: ${r.content.slice(0, 300)}`)
+    .join('\n\n');
+
+  const systemInstruction = `
+    You are a Medical Pattern Recognition Engine. Analyze the provided records for longitudinal trends.
+    Look for:
+    - Numerical trends (Blood pressure, weight, lab values).
+    - Symptom frequency (e.g., "headaches are occurring more often").
+    - Medication adherence or changes.
+
+    OUTPUT: Return a JSON array of "Insight" objects.
+    Each object: { "type": "warning" | "positive" | "neutral", "title": string, "description": string, "evidence": string }
+  `;
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: `Analyze these records for trends: \n\n${contextText}`,
+    config: { 
+      systemInstruction,
+      responseMimeType: 'application/json'
+    }
+  });
+
+  try {
+    return JSON.parse(response.text || '[]');
+  } catch (e) {
+    console.error('Failed to parse trends:', e);
+    return [];
+  }
+}
+
+export async function extractInsightsFromChat(messages: { role: 'user' | 'assistant', content: string }[]) {
+  const systemInstruction = `
+    You are a Medical Scribe and Personal Health Archivist. 
+    Analyze the provided chat history between a user and their Medical Brain.
+    
+    TASKS:
+    1. EXTRACT MEDICAL RECORDS: Identify any new symptoms, medication changes, or health observations mentioned by the user.
+    2. EXTRACT PREFERENCES: Identify user preferences (e.g., "I prefer natural remedies", "I hate taking pills in the morning").
+    3. EXTRACT PERSONAL NUANCE: Identify life context (e.g., "I'm training for a marathon", "I've been very stressed at work").
+
+    OUTPUT: Return a JSON object:
+    {
+      "newRecords": [{ "title": string, "content": string, "type": "observation" | "symptom" | "medication" }],
+      "preferences": string[],
+      "nuances": string[]
+    }
+    If nothing new is found, return empty arrays.
+  `;
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: `Analyze this conversation for health insights: \n\n${JSON.stringify(messages.slice(-4))}`,
+    config: { 
+      systemInstruction,
+      responseMimeType: 'application/json'
+    }
+  });
+
+  try {
+    return JSON.parse(response.text || '{}');
+  } catch (e) {
+    console.error('Failed to extract insights:', e);
+    return null;
+  }
+}

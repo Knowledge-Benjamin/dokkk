@@ -54,6 +54,8 @@ export interface UserProfile {
   bloodType?: string;
   allergies: string[];
   chronicConditions: string[];
+  preferences?: string[];
+  nuances?: string[];
   emergencyContact?: {
     name: string;
     phone: string;

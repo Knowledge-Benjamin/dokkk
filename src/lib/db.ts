@@ -76,6 +76,20 @@ export async function getProfile(): Promise<UserProfile | undefined> {
   return data;
 }
 
+export async function updateProfileInsights(newPreferences: string[], newNuances: string[]) {
+  const profile = await getProfile();
+  if (!profile) return;
+
+  const updatedProfile: UserProfile = {
+    ...profile,
+    preferences: Array.from(new Set([...(profile.preferences || []), ...newPreferences])),
+    nuances: Array.from(new Set([...(profile.nuances || []), ...newNuances]))
+  };
+
+  await saveProfile(updatedProfile);
+  await logAction('access', 'Updated profile with chat insights');
+}
+
 export async function getAuditLogs(): Promise<AuditLog[]> {
   const db = await initDB();
   return db.getAll('audit_logs');

@@ -87,7 +87,20 @@ export const translations = {
     visitNote: 'Visit Note',
     content: 'Content',
     contentPlaceholder: 'Describe symptoms, medications, or doctor instructions...',
-    saveVault: 'Securely Save to Vault'
+    saveVault: 'Securely Save to Vault',
+    proactiveInsights: 'Proactive Health Insights',
+    clinicianBrief: 'Clinician Briefing',
+    generateBrief: 'Generate Brief for Doctor',
+    detectingTrends: 'Analyzing longitudinal trends...',
+    noTrends: 'Not enough data for trend analysis yet.',
+    briefDescription: 'A professional clinical summary of your medical journey to share with your healthcare provider.',
+    insightWarning: 'Actionable Warning',
+    insightPositive: 'Positive Trend',
+    insightNeutral: 'Observation',
+    evidence: 'Evidence',
+    personalNuances: 'Personal Nuances',
+    preferences: 'Medical Preferences',
+    learningFromChat: 'Learning from your conversations...'
   },
   es: {
     dashboard: 'Tablero',
@@ -177,7 +190,20 @@ export const translations = {
     visitNote: 'Nota de Visita',
     content: 'Contenido',
     contentPlaceholder: 'Describa síntomas, medicamentos o instrucciones del médico...',
-    saveVault: 'Guardar de Forma Segura en la Bóveda'
+    saveVault: 'Guardar de Forma Segura en la Bóveda',
+    proactiveInsights: 'Perspectivas de Salud Proactivas',
+    clinicianBrief: 'Resumen para el Clínico',
+    generateBrief: 'Generar Resumen para el Médico',
+    detectingTrends: 'Analizando tendencias longitudinales...',
+    noTrends: 'Aún no hay suficientes datos para el análisis de tendencias.',
+    briefDescription: 'Un resumen clínico profesional de su viaje médico para compartir con su proveedor de atención médica.',
+    insightWarning: 'Advertencia Accionable',
+    insightPositive: 'Tendencia Positiva',
+    insightNeutral: 'Observación',
+    evidence: 'Evidencia',
+    personalNuances: 'Matices Personales',
+    preferences: 'Preferencias Médicas',
+    learningFromChat: 'Aprendiendo de sus conversaciones...'
   },
   fr: {
     dashboard: 'Tableau de bord',
@@ -267,7 +293,20 @@ export const translations = {
     visitNote: 'Note de visite',
     content: 'Contenu',
     contentPlaceholder: 'Décrivez les symptômes, les médicaments ou les instructions du moteur...',
-    saveVault: 'Enregistrer en toute sécurité dans le coffre'
+    saveVault: 'Enregistrer en toute sécurité dans le coffre',
+    proactiveInsights: 'Aperçus de santé proactifs',
+    clinicianBrief: 'Briefing clinicien',
+    generateBrief: 'Générer un briefing pour le médecin',
+    detectingTrends: 'Analyse des tendances longitudinales...',
+    noTrends: 'Pas assez de données pour l\'analyse des tendances pour le moment.',
+    briefDescription: 'Un résumé clinique professionnel de votre parcours médical à partager avec votre professionnel de la santé.',
+    insightWarning: 'Avertissement exploitable',
+    insightPositive: 'Tendance positive',
+    insightNeutral: 'Observation',
+    evidence: 'Preuve',
+    personalNuances: 'Nuances Personnelles',
+    preferences: 'Préférences Médicales',
+    learningFromChat: 'Apprentissage de vos conversations...'
   },
   de: {
     dashboard: 'Dashboard',
@@ -357,7 +396,20 @@ export const translations = {
     visitNote: 'Besuchsnotiz',
     content: 'Inhalt',
     contentPlaceholder: 'Beschreiben Sie Symptome, Medikamente oder Anweisungen des Arztes...',
-    saveVault: 'Sicher im Tresor speichern'
+    saveVault: 'Sicher im Tresor speichern',
+    proactiveInsights: 'Proaktive Gesundheitseinblicke',
+    clinicianBrief: 'Klinisches Briefing',
+    generateBrief: 'Briefing für den Arzt erstellen',
+    detectingTrends: 'Längsschnitttrends analysieren...',
+    noTrends: 'Noch nicht genügend Daten für eine Trendanalyse vorhanden.',
+    briefDescription: 'Eine professionelle klinische Zusammenfassung Ihrer medizinischen Reise zur Weitergabe an Ihren Gesundheitsdienstleister.',
+    insightWarning: 'Handlungsrelevante Warnung',
+    insightPositive: 'Positiver Trend',
+    insightNeutral: 'Beobachtung',
+    evidence: 'Beweis',
+    personalNuances: 'Persönliche Nuancen',
+    preferences: 'Medizinische Präferenzen',
+    learningFromChat: 'Lernen aus Ihren Gesprächen...'
   }
 };
 

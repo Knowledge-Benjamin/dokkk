@@ -1,14 +1,22 @@
 import { useEffect, useState } from 'react';
 import { getAllRecords, getProfile } from '../lib/db';
 import { MedicalRecord, UserProfile } from '../types';
-import { Activity, FileText, Calendar, ShieldCheck, User, ArrowUpRight, Search, X, Clock, Database, Loader2 } from 'lucide-react';
+import { Activity, FileText, Calendar, ShieldCheck, User, ArrowUpRight, Search, X, Clock, Database, Loader2, Zap, AlertCircle, CheckCircle2, Info } from 'lucide-react';
 import { format, subMonths, isAfter } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { seedMedicalDatabase } from '../lib/seed';
 import { useTranslation } from '../lib/translations';
+import { detectHealthTrends } from '../lib/ai';
 
 interface DashboardProps {
   onNavigate?: (tab: string) => void;
+}
+
+interface HealthInsight {
+  type: 'warning' | 'positive' | 'neutral';
+  title: string;
+  description: string;
+  evidence: string;
 }
 
 export default function Dashboard({ onNavigate }: DashboardProps) {
@@ -18,13 +26,23 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   const [loading, setLoading] = useState(true);
   const [isSeeding, setIsSeeding] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<MedicalRecord | null>(null);
+  const [insights, setInsights] = useState<HealthInsight[]>([]);
+  const [loadingInsights, setLoadingInsights] = useState(false);
 
   useEffect(() => {
     async function load() {
       const [data, p] = await Promise.all([getAllRecords(), getProfile()]);
-      setRecords(data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      const sortedRecords = data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      setRecords(sortedRecords);
       setProfile(p || null);
       setLoading(false);
+
+      if (sortedRecords.length >= 2) {
+        setLoadingInsights(true);
+        const trends = await detectHealthTrends();
+        if (trends) setInsights(trends);
+        setLoadingInsights(false);
+      }
     }
     load();
   }, []);
@@ -146,6 +164,57 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             </div>
           </section>
 
+          {/* Proactive Health Insights */}
+          <section className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-teal-50 rounded-lg text-teal-600">
+                  <Zap size={20} />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900">{t.proactiveInsights}</h3>
+              </div>
+              {loadingInsights && <Loader2 size={18} className="animate-spin text-teal-600" />}
+            </div>
+
+            {loadingInsights ? (
+              <div className="py-8 flex flex-col items-center gap-3">
+                <p className="text-sm text-slate-500 animate-pulse">{t.detectingTrends}</p>
+              </div>
+            ) : insights.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {insights.map((insight, idx) => (
+                  <div key={idx} className={`p-5 rounded-2xl border ${
+                    insight.type === 'warning' ? 'bg-rose-50 border-rose-100' : 
+                    insight.type === 'positive' ? 'bg-teal-50 border-teal-100' : 
+                    'bg-slate-50 border-slate-100'
+                  }`}>
+                    <div className="flex items-start gap-3">
+                      {insight.type === 'warning' ? <AlertCircle className="text-rose-600 mt-0.5" size={18} /> : 
+                       insight.type === 'positive' ? <CheckCircle2 className="text-teal-600 mt-0.5" size={18} /> : 
+                       <Info className="text-slate-600 mt-0.5" size={18} />}
+                      <div>
+                        <h4 className={`font-bold text-sm mb-1 ${
+                          insight.type === 'warning' ? 'text-rose-900' : 
+                          insight.type === 'positive' ? 'text-teal-900' : 
+                          'text-slate-900'
+                        }`}>{insight.title}</h4>
+                        <p className="text-xs text-slate-600 mb-3 leading-relaxed">{insight.description}</p>
+                        <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest opacity-60">
+                          <span>{t.evidence}:</span>
+                          <span className="truncate max-w-[150px]">{insight.evidence}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="py-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                <p className="text-sm text-slate-400 italic">{t.noTrends}</p>
+              </div>
+            )}
+          </section>
+
           {/* Recent Records */}
           <section>
             <div className="flex items-center justify-between mb-6">
@@ -233,6 +302,46 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
               </div>
             </div>
           </section>
+
+          {/* AI Learned Insights */}
+          {(profile?.preferences?.length || profile?.nuances?.length) ? (
+            <section className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
+              <div className="flex items-center gap-2 mb-6">
+                <div className="w-2 h-2 bg-teal-500 rounded-full animate-pulse" />
+                <h3 className="text-lg font-bold text-slate-900">{t.learningFromChat}</h3>
+              </div>
+              
+              <div className="space-y-6">
+                {profile.preferences && profile.preferences.length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">{t.preferences}</p>
+                    <div className="space-y-2">
+                      {profile.preferences.map((pref, i) => (
+                        <div key={i} className="flex items-start gap-2 text-xs text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-100">
+                          <CheckCircle2 size={14} className="text-teal-600 shrink-0 mt-0.5" />
+                          {pref}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {profile.nuances && profile.nuances.length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">{t.personalNuances}</p>
+                    <div className="space-y-2">
+                      {profile.nuances.map((nuance, i) => (
+                        <div key={i} className="flex items-start gap-2 text-xs text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-100">
+                          <Info size={14} className="text-slate-400 shrink-0 mt-0.5" />
+                          {nuance}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </section>
+          ) : null}
 
           {/* Quick Action */}
           <section className="bg-slate-900 rounded-3xl p-8 text-white">

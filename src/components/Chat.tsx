@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { Send, Bot, User, Loader2, Info, Activity, Database } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { ChatMessage, UserProfile } from '../types';
-import { getChatHistory, saveMessage, getAllRecords, getProfile } from '../lib/db';
-import { searchContext, generateGroundedResponse } from '../lib/ai';
+import { getChatHistory, saveMessage, getAllRecords, getProfile, saveRecord, updateProfileInsights } from '../lib/db';
+import { searchContext, generateGroundedResponse, extractInsightsFromChat } from '../lib/ai';
 import { v4 as uuidv4 } from 'uuid';
 import { motion, AnimatePresence } from 'motion/react';
 import { seedMedicalDatabase } from '../lib/seed';
@@ -65,6 +65,41 @@ export default function Chat() {
 
       setMessages(prev => [...prev, botMsg]);
       await saveMessage(botMsg);
+
+      // Continuous Learning & Auto-Curation
+      const chatHistory = [...messages, userMsg, botMsg].map(m => ({
+        role: m.role === 'model' ? 'assistant' as const : 'user' as const,
+        content: m.text
+      }));
+
+      const insights = await extractInsightsFromChat(chatHistory);
+      if (insights) {
+        // 1. Save new medical records extracted from chat
+        if (insights.newRecords && insights.newRecords.length > 0) {
+          for (const record of insights.newRecords) {
+            await saveRecord({
+              id: uuidv4(),
+              title: record.title,
+              content: record.content,
+              type: 'symptom_log', // Default to symptom log for chat-extracted data
+              date: new Date().toISOString(),
+              source: 'AI Chat Extraction',
+              tags: ['auto-curated', record.type],
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            });
+          }
+        }
+
+        // 2. Update profile with preferences and nuances
+        if ((insights.preferences && insights.preferences.length > 0) || 
+            (insights.nuances && insights.nuances.length > 0)) {
+          await updateProfileInsights(insights.preferences || [], insights.nuances || []);
+          // Refresh profile state
+          const updatedProfile = await getProfile();
+          if (updatedProfile) setProfile(updatedProfile);
+        }
+      }
     } catch (err) {
       console.error(err);
       setError(t.errorBrain);
