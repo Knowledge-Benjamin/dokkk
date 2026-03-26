@@ -1,5 +1,6 @@
 import { openDB, IDBPDatabase } from 'idb';
 import { MedicalRecord, ChatMessage, AuditLog, UserProfile } from '../types';
+import { encryptData, decryptData, vaultPassword } from './crypto';
 
 const DB_NAME = 'pmi_enterprise_db';
 const DB_VERSION = 2;
@@ -23,8 +24,32 @@ export async function initDB(): Promise<IDBPDatabase> {
   });
 }
 
-export async function logAction(action: AuditLog['action'], details: string, metadata?: any) {
+async function securePut(store: string, id: string, data: any) {
   const db = await initDB();
+  if (!vaultPassword) throw new Error('Vault is locked. Decryption key missing.');
+  const encrypted = await encryptData(JSON.stringify(data), vaultPassword);
+  await db.put(store, { id, enc: encrypted });
+}
+
+async function secureGetAll<T>(store: string): Promise<T[]> {
+  const db = await initDB();
+  const items = await db.getAll(store);
+  if (!vaultPassword) return [];
+  const results: T[] = [];
+  for (const item of items) {
+    if (item.enc) {
+      try {
+        const dec = await decryptData(item.enc, vaultPassword);
+        results.push(JSON.parse(dec));
+      } catch (e) {
+        console.error(`Decryption failed for item ${item.id} in ${store}`);
+      }
+    }
+  }
+  return results;
+}
+
+export async function logAction(action: AuditLog['action'], details: string, metadata?: any) {
   const log: AuditLog = {
     id: crypto.randomUUID(),
     timestamp: new Date().toISOString(),
@@ -32,12 +57,11 @@ export async function logAction(action: AuditLog['action'], details: string, met
     details,
     metadata
   };
-  await db.put('audit_logs', log);
+  await securePut('audit_logs', log.id, log);
 }
 
 export async function saveRecord(record: MedicalRecord) {
-  const db = await initDB();
-  await db.put('records', record);
+  await securePut('records', record.id, record);
   await logAction('upload', `Saved record: ${record.title}`, { recordId: record.id });
 }
 
@@ -48,32 +72,38 @@ export async function deleteRecord(id: string) {
 }
 
 export async function getAllRecords(): Promise<MedicalRecord[]> {
-  const db = await initDB();
-  return db.getAll('records');
+  return secureGetAll<MedicalRecord>('records');
 }
 
 export async function saveMessage(message: ChatMessage) {
-  const db = await initDB();
-  await db.put('messages', message);
+  await securePut('messages', message.id, message);
   if (message.role === 'user') {
     await logAction('query', `User query: ${message.text.slice(0, 50)}...`);
   }
 }
 
 export async function getChatHistory(): Promise<ChatMessage[]> {
-  const db = await initDB();
-  return db.getAll('messages');
+  return secureGetAll<ChatMessage>('messages');
 }
 
 export async function saveProfile(profile: UserProfile) {
-  const db = await initDB();
-  await db.put('settings', { id: 'user_profile', ...profile });
+  await securePut('settings', 'user_profile', { id: 'user_profile', ...profile });
 }
 
 export async function getProfile(): Promise<UserProfile | undefined> {
   const db = await initDB();
-  const data = await db.get('settings', 'user_profile');
-  return data;
+  const item = await db.get('settings', 'user_profile');
+  if (item && item.enc && vaultPassword) {
+    try {
+      const dec = await decryptData(item.enc, vaultPassword);
+      const parsed = JSON.parse(dec);
+      delete parsed.id;
+      return parsed as UserProfile;
+    } catch (e) {
+      console.error('Failed decryption for profile');
+    }
+  }
+  return undefined;
 }
 
 export async function updateProfileInsights(newPreferences: string[], newNuances: string[]) {
@@ -91,8 +121,7 @@ export async function updateProfileInsights(newPreferences: string[], newNuances
 }
 
 export async function getAuditLogs(): Promise<AuditLog[]> {
-  const db = await initDB();
-  return db.getAll('audit_logs');
+  return secureGetAll<AuditLog>('audit_logs');
 }
 
 export async function wipeAllData() {

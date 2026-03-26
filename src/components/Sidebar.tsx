@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, MessageSquare, FileUp, Settings as SettingsIcon, Activity, Shield, User } from 'lucide-react';
+import { LayoutDashboard, MessageSquare, FileUp, Settings as SettingsIcon, Activity, Shield, User, Heart, ScanLine, Stethoscope } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { getProfile } from '../lib/db';
@@ -31,6 +31,9 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
     { id: 'dashboard', label: t.dashboard, icon: LayoutDashboard },
     { id: 'chat', label: t.medicalBrain, icon: MessageSquare },
     { id: 'upload', label: t.ingestion, icon: FileUp },
+    { id: 'vitals', label: 'Vitals Tracker', icon: Heart },
+    { id: 'scanner', label: 'Smart Scanner', icon: ScanLine },
+    { id: 'triage', label: 'Symptom Triage', icon: Stethoscope },
     { id: 'timeline', label: t.timeline, icon: Activity },
     { id: 'settings', label: t.settings, icon: SettingsIcon },
   ];
@@ -43,7 +46,7 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
         </div>
         <div>
           <h1 className="font-bold text-lg text-slate-900 leading-tight">PMI Brain</h1>
-          <p className="text-[10px] text-teal-600 font-bold tracking-widest uppercase">Enterprise v2.0</p>
+          <p className="text-[10px] text-teal-600 font-bold tracking-widest uppercase">Enterprise v3.0</p>
         </div>
       </div>
 

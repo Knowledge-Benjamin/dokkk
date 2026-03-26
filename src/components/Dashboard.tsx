@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { getAllRecords, getProfile } from '../lib/db';
 import { MedicalRecord, UserProfile } from '../types';
-import { Activity, FileText, Calendar, ShieldCheck, User, ArrowUpRight, Search, X, Clock, Database, Loader2, Zap, AlertCircle, CheckCircle2, Info } from 'lucide-react';
+import { Activity, FileText, Calendar, ShieldCheck, User, ArrowUpRight, Search, X, Clock, Database, Loader2, Zap, AlertCircle, CheckCircle2, Info, Brain, Printer } from 'lucide-react';
 import { format, subMonths, isAfter } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { seedMedicalDatabase } from '../lib/seed';
 import { useTranslation } from '../lib/translations';
-import { detectHealthTrends } from '../lib/ai';
+import { detectHealthTrends, generateDoctorLetter } from '../lib/ai';
+import { getVitalLogs } from '../lib/vitals';
+import { calculateBioAge } from '../lib/bioage';
 
 interface DashboardProps {
   onNavigate?: (tab: string) => void;
@@ -28,6 +30,10 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   const [selectedRecord, setSelectedRecord] = useState<MedicalRecord | null>(null);
   const [insights, setInsights] = useState<HealthInsight[]>([]);
   const [loadingInsights, setLoadingInsights] = useState(false);
+  const [bioAge, setBioAge] = useState<{ bioAge: number; chronologicalAge: number; delta: number; score: number } | null>(null);
+  const [doctorLetter, setDoctorLetter] = useState<string | null>(null);
+  const [loadingLetter, setLoadingLetter] = useState(false);
+  const [showLetterModal, setShowLetterModal] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -42,6 +48,12 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         const trends = await detectHealthTrends();
         if (trends) setInsights(trends);
         setLoadingInsights(false);
+      }
+      // Compute BioAge from vitals
+      const vitals = await getVitalLogs();
+      if (vitals.length > 0) {
+        const result = calculateBioAge(vitals, p?.dateOfBirth);
+        setBioAge(result);
       }
     }
     load();
@@ -343,17 +355,51 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             </section>
           ) : null}
 
-          {/* Quick Action */}
+          {/* Quick Actions */}
           <section className="bg-slate-900 rounded-3xl p-8 text-white">
             <h3 className="font-bold mb-4">{t.emergencyAccess}</h3>
             <p className="text-xs text-slate-400 mb-6">
               In case of emergency, this device contains your critical medical history. Hand it to a clinician.
             </p>
-            <button className="w-full py-3 bg-rose-600 text-white font-bold rounded-xl hover:bg-rose-700 transition-all flex items-center justify-center gap-2">
-              <ShieldCheck size={18} />
-              {t.emergencyProfile}
-            </button>
+            <div className="space-y-3">
+              <button className="w-full py-3 bg-rose-600 text-white font-bold rounded-xl hover:bg-rose-700 transition-all flex items-center justify-center gap-2">
+                <ShieldCheck size={18} />
+                {t.emergencyProfile}
+              </button>
+              <button
+                onClick={async () => {
+                  setLoadingLetter(true);
+                  const letter = await generateDoctorLetter();
+                  setDoctorLetter(letter);
+                  setLoadingLetter(false);
+                  setShowLetterModal(true);
+                }}
+                disabled={loadingLetter || records.length === 0}
+                className="w-full py-3 bg-teal-600 text-white font-bold rounded-xl hover:bg-teal-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {loadingLetter ? <Loader2 size={18} className="animate-spin" /> : <Brain size={18} />}
+                Generate Doctor's Letter
+              </button>
+            </div>
           </section>
+
+          {/* BioAge Card */}
+          {bioAge && (
+            <section className="rounded-3xl p-6 border shadow-sm text-center"
+              style={{ background: bioAge.delta <= 0 ? 'linear-gradient(135deg,#f0fdf4,#dcfce7)' : 'linear-gradient(135deg,#fff7ed,#ffedd5)', borderColor: bioAge.delta <= 0 ? '#86efac' : '#fdba74' }}
+            >
+              <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: bioAge.delta <= 0 ? '#166534' : '#9a3412' }}>Biological Age Score</p>
+              <div className="text-6xl font-black mb-1" style={{ color: bioAge.delta <= 0 ? '#15803d' : '#c2410c' }}>{bioAge.bioAge}</div>
+              <p className="text-sm font-medium text-slate-600">vs. {bioAge.chronologicalAge} chronological</p>
+              <p className="text-xs font-bold mt-2" style={{ color: bioAge.delta <= 0 ? '#22c55e' : '#f97316' }}>
+                {bioAge.delta === 0 ? 'Right on track' : bioAge.delta < 0 ? `${Math.abs(bioAge.delta)} years biologically younger 🎉` : `${bioAge.delta} years biologically older ⚠️`}
+              </p>
+              <div className="mt-3 h-1.5 rounded-full bg-slate-200 overflow-hidden">
+                <div className="h-full rounded-full transition-all" style={{ width: `${bioAge.score}%`, background: bioAge.score >= 70 ? '#22c55e' : bioAge.score >= 40 ? '#f59e0b' : '#ef4444' }} />
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1">Health Score: {bioAge.score}/100</p>
+            </section>
+          )}
         </div>
       </div>
 

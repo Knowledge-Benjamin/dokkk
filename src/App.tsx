@@ -7,6 +7,11 @@ import HealthTimeline from './components/HealthTimeline';
 import Settings from './components/Settings';
 import { motion, AnimatePresence } from 'motion/react';
 import { AlertCircle, RefreshCcw } from 'lucide-react';
+import VaultLock from './components/VaultLock';
+import { hasVaultPassword } from './lib/crypto';
+import VitalsTracker from './components/VitalsTracker';
+import SmartScanner from './components/SmartScanner';
+import SymptomTriage from './components/SymptomTriage';
 
 // Simple Error Boundary Fallback
 function ErrorFallback({ error, resetErrorBoundary }: { error: Error, resetErrorBoundary: () => void }) {
@@ -36,6 +41,11 @@ function ErrorFallback({ error, resetErrorBoundary }: { error: Error, resetError
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [error, setError] = useState<Error | null>(null);
+  const [isUnlocked, setIsUnlocked] = useState(false);
+
+  if (!isUnlocked) {
+    return <VaultLock onUnlock={() => setIsUnlocked(true)} />;
+  }
 
   const renderContent = () => {
     try {
@@ -46,6 +56,12 @@ export default function App() {
           return <Chat key="chat" />;
         case 'upload':
           return <RecordUpload key="upload" />;
+        case 'vitals':
+          return <VitalsTracker key="vitals" />;
+        case 'scanner':
+          return <SmartScanner key="scanner" />;
+        case 'triage':
+          return <SymptomTriage key="triage" />;
         case 'timeline':
           return <HealthTimeline key="timeline" />;
         case 'settings':

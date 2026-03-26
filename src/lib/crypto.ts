@@ -5,6 +5,16 @@
 const ALGORITHM = 'AES-GCM';
 const IV_LENGTH = 12;
 
+export let vaultPassword = '';
+
+export function setVaultPassword(pwd: string) {
+  vaultPassword = pwd;
+}
+
+export function hasVaultPassword() {
+  return vaultPassword.length > 0;
+}
+
 async function getEncryptionKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
   const enc = new TextEncoder();
   const keyMaterial = await window.crypto.subtle.importKey(
