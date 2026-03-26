@@ -63,7 +63,9 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     <div className="p-8 max-w-7xl mx-auto">
       <header className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h2 className="text-3xl font-bold text-slate-900 mb-2">Patient Intelligence</h2>
+          <h2 className="text-3xl font-bold text-slate-900 mb-2">
+            {profile?.name ? `Welcome back, ${profile.name.split(' ')[0]}` : 'Patient Intelligence'}
+          </h2>
           <p className="text-slate-500">Longitudinal view of your medical journey.</p>
         </div>
         

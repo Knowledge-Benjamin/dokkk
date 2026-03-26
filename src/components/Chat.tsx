@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Send, Bot, User, Loader2, Info, Activity, Database } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { ChatMessage } from '../types';
-import { getChatHistory, saveMessage, getAllRecords } from '../lib/db';
+import { ChatMessage, UserProfile } from '../types';
+import { getChatHistory, saveMessage, getAllRecords, getProfile } from '../lib/db';
 import { searchContext, generateGroundedResponse } from '../lib/ai';
 import { v4 as uuidv4 } from 'uuid';
 import { motion, AnimatePresence } from 'motion/react';
@@ -10,6 +10,7 @@ import { seedMedicalDatabase } from '../lib/seed';
 
 export default function Chat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [input, setInput] = useState('');
   const [isThinking, setIsThinking] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
@@ -19,9 +20,10 @@ export default function Chat() {
 
   useEffect(() => {
     async function load() {
-      const [history, records] = await Promise.all([getChatHistory(), getAllRecords()]);
+      const [history, records, p] = await Promise.all([getChatHistory(), getAllRecords(), getProfile()]);
       setMessages(history.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()));
       setHasRecords(records.length > 0);
+      setProfile(p || null);
     }
     load();
   }, []);
@@ -93,9 +95,11 @@ export default function Chat() {
             <div className="w-16 h-16 bg-teal-50 rounded-2xl flex items-center justify-center text-teal-600 mb-6">
               <Activity size={32} />
             </div>
-            <h3 className="text-xl font-bold text-slate-900 mb-2">Ask your Medical Brain</h3>
+            <h3 className="text-xl font-bold text-slate-900 mb-2">
+              {profile?.name ? `Hello, ${profile.name.split(' ')[0]}` : 'Ask your Medical Brain'}
+            </h3>
             <p className="text-slate-500 mb-6">
-              I can answer questions about your medical history, medications, and treatments based strictly on the records you've uploaded.
+              I'm here to help you understand your medical history. I can answer questions about your medications, treatments, and past visits based strictly on your vault.
             </p>
             {!hasRecords && (
               <button 
