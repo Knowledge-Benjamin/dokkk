@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
 import { User, Shield, History, Download, Trash2, Save, CheckCircle2, Activity, Database, Loader2 } from 'lucide-react';
-import { getProfile, saveProfile, getAuditLogs, getAllRecords, logAction, wipeAllData, saveRecord } from '../lib/db';
-import { UserProfile, AuditLog, MedicalRecord } from '../types';
+import { getProfile, saveProfile, getAuditLogs, getAllRecords, logAction, wipeAllData } from '../lib/db';
+import { UserProfile, AuditLog } from '../types';
 import { format } from 'date-fns';
-import { SAMPLE_RECORDS } from '../constants';
-import { generateEmbedding } from '../lib/ai';
-import { chunkText } from '../lib/ocr';
+import { seedMedicalDatabase } from '../lib/seed';
 
 export default function Settings() {
   const [profile, setProfile] = useState<UserProfile>({
@@ -64,26 +62,7 @@ export default function Settings() {
   const handleSeedData = async () => {
     setIsSeeding(true);
     try {
-      for (const sample of SAMPLE_RECORDS) {
-        const chunks = chunkText(sample.content!);
-        const embeddings = await Promise.all(chunks.map(c => generateEmbedding(c)));
-        
-        const record: MedicalRecord = {
-          id: crypto.randomUUID(),
-          title: sample.title!,
-          content: sample.content!,
-          type: sample.type!,
-          date: sample.date!,
-          source: sample.source!,
-          tags: sample.tags!,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          chunks,
-          embeddings
-        };
-        await saveRecord(record);
-      }
-      await logAction('access', 'Seeded sample medical records');
+      await seedMedicalDatabase();
       window.location.reload();
     } catch (err) {
       console.error(err);

@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { getAllRecords, getProfile } from '../lib/db';
 import { MedicalRecord, UserProfile } from '../types';
-import { Activity, FileText, Calendar, ShieldCheck, User, ArrowUpRight, Search, X, Clock } from 'lucide-react';
+import { Activity, FileText, Calendar, ShieldCheck, User, ArrowUpRight, Search, X, Clock, Database, Loader2 } from 'lucide-react';
 import { format, subMonths, isAfter } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { seedMedicalDatabase } from '../lib/seed';
 
 interface DashboardProps {
   onNavigate?: (tab: string) => void;
@@ -13,6 +14,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   const [records, setRecords] = useState<MedicalRecord[]>([]);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isSeeding, setIsSeeding] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<MedicalRecord | null>(null);
 
   useEffect(() => {
@@ -35,6 +37,18 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     }).length;
     return { name: monthStr, count };
   });
+
+  const handleSeed = async () => {
+    setIsSeeding(true);
+    try {
+      await seedMedicalDatabase();
+      window.location.reload();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSeeding(false);
+    }
+  };
 
   if (loading) return (
     <div className="flex items-center justify-center h-full">
@@ -142,8 +156,16 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
 
             <div className="space-y-4">
               {records.length === 0 ? (
-                <div className="text-center py-12 bg-white rounded-3xl border border-dashed border-slate-300">
+                <div className="text-center py-12 bg-white rounded-3xl border border-dashed border-slate-300 flex flex-col items-center gap-4">
                   <p className="text-slate-500 font-medium">No medical records found in your local vault.</p>
+                  <button 
+                    onClick={handleSeed}
+                    disabled={isSeeding}
+                    className="flex items-center gap-2 px-6 py-2.5 bg-teal-50 text-teal-600 font-bold rounded-xl hover:bg-teal-100 transition-all disabled:opacity-50"
+                  >
+                    {isSeeding ? <Loader2 size={18} className="animate-spin" /> : <Database size={18} />}
+                    {isSeeding ? 'Seeding...' : 'Seed Sample Data'}
+                  </button>
                 </div>
               ) : (
                 records.slice(0, 4).map((record) => (

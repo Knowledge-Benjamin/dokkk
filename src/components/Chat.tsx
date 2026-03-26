@@ -1,23 +1,27 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, Bot, User, Loader2, Info, Activity } from 'lucide-react';
+import { Send, Bot, User, Loader2, Info, Activity, Database } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { ChatMessage } from '../types';
-import { getChatHistory, saveMessage } from '../lib/db';
+import { getChatHistory, saveMessage, getAllRecords } from '../lib/db';
 import { searchContext, generateGroundedResponse } from '../lib/ai';
 import { v4 as uuidv4 } from 'uuid';
 import { motion, AnimatePresence } from 'motion/react';
+import { seedMedicalDatabase } from '../lib/seed';
 
 export default function Chat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isThinking, setIsThinking] = useState(false);
+  const [isSeeding, setIsSeeding] = useState(false);
+  const [hasRecords, setHasRecords] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function load() {
-      const history = await getChatHistory();
+      const [history, records] = await Promise.all([getChatHistory(), getAllRecords()]);
       setMessages(history.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()));
+      setHasRecords(records.length > 0);
     }
     load();
   }, []);
@@ -90,9 +94,29 @@ export default function Chat() {
               <Activity size={32} />
             </div>
             <h3 className="text-xl font-bold text-slate-900 mb-2">Ask your Medical Brain</h3>
-            <p className="text-slate-500">
+            <p className="text-slate-500 mb-6">
               I can answer questions about your medical history, medications, and treatments based strictly on the records you've uploaded.
             </p>
+            {!hasRecords && (
+              <button 
+                onClick={async () => {
+                  setIsSeeding(true);
+                  try {
+                    await seedMedicalDatabase();
+                    window.location.reload();
+                  } catch (err) {
+                    console.error(err);
+                  } finally {
+                    setIsSeeding(false);
+                  }
+                }}
+                disabled={isSeeding}
+                className="flex items-center gap-2 px-6 py-3 bg-teal-600 text-white font-bold rounded-xl hover:bg-teal-700 transition-all disabled:opacity-50"
+              >
+                {isSeeding ? <Loader2 size={20} className="animate-spin" /> : <Database size={20} />}
+                {isSeeding ? 'Seeding...' : 'Seed Sample Data to Start'}
+              </button>
+            )}
           </div>
         )}
 
