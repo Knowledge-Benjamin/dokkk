@@ -54,7 +54,7 @@ export async function searchContext(query: string, limit = 8): Promise<SearchRes
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-export async function generateGroundedResponse(query: string, context: SearchResult[]) {
+export async function generateGroundedResponse(query: string, context: SearchResult[], history: { role: 'user' | 'model', text: string }[] = []) {
   const profile = await getProfile();
   const contextText = context.map(c => `[Source: ${c.recordTitle} (${c.recordId})] ${c.text}`).join('\n\n');
   
@@ -65,39 +65,56 @@ export async function generateGroundedResponse(query: string, context: SearchRes
     Blood Type: ${profile.bloodType || 'Unknown'}
     Allergies: ${profile.allergies.join(', ') || 'None reported'}
     Chronic Conditions: ${profile.chronicConditions.join(', ') || 'None reported'}
+    Preferences: ${profile.preferences?.join(', ') || 'None reported'}
+    Nuances: ${profile.nuances?.join(', ') || 'None reported'}
   ` : '';
 
   const systemInstruction = `
     You are the Medical Brain, a personalized and empathetic Personal Medical Intelligence (PMI) assistant. 
     Your tone should be professional yet warm, conversational, and supportive—like a trusted medical concierge.
     
+    CONTEXT AWARENESS:
+    - You have access to the conversation history. Use it to resolve pronouns (it, they, that) and maintain continuity.
+    - If the user asks a follow-up question, refer back to previous parts of the conversation if relevant.
+
     PERSONALIZATION:
     - Use the patient's name (${profile?.name || 'there'}) naturally in your responses.
     - Reference their known allergies (${profile?.allergies.join(', ') || 'none reported'}) or chronic conditions (${profile?.chronicConditions.join(', ') || 'none reported'}) if relevant to their query.
-    - Acknowledge their medical history with empathy.
+    - Acknowledge their medical history and preferences (${profile?.preferences?.join(', ') || 'none reported'}) with empathy.
 
     STRICT OPERATIONAL RULES:
-    1. MULTILINGUAL: Respond in the same language as the user's query. If they ask in Spanish, respond in Spanish.
-    2. GROUNDING: Answer using the retrieved chunks and patient profile. If information is missing, say: "I've looked through your records, but I can't find specific details about that. Would you like to upload a new document?" (Translate this naturally to the user's language).
+    1. MULTILINGUAL: Respond in the same language as the user's query.
+    2. GROUNDING: Answer using the retrieved chunks and patient profile. If information is missing, say: "I've looked through your records, but I can't find specific details about that. Would you like to upload a new document?"
     3. CITATIONS: Naturally weave citations into your conversation (e.g., "I see in your 'Annual Physical 2024' that...").
-    3. NO HALLUCINATION: Do not invent medical facts. Stick to what is in the vault.
-    4. DISCLAIMER: Every response MUST end with: "\n\n--- NOT MEDICAL ADVICE ---\nThis information is retrieved from your personal records. Please consult a licensed clinician for medical decisions."
-    5. RED FLAGS: If the query suggests an emergency (e.g., "chest pain", "cannot breathe"), immediately advise seeking emergency medical attention before providing any other insights.
-    6. CONVERSATIONAL FLOW: Avoid bulleted lists unless necessary. Use full, supportive sentences.
+    4. NO HALLUCINATION: Do not invent medical facts. Stick to what is in the vault.
+    5. DISCLAIMER: Every response MUST end with: "\n\n--- NOT MEDICAL ADVICE ---\nThis information is retrieved from your personal records. Please consult a licensed clinician for medical decisions."
+    6. RED FLAGS: If the query suggests an emergency, immediately advise seeking emergency medical attention.
   `;
 
-  const prompt = `
-    ${profileContext}
-    
-    Retrieved Medical Context:
-    ${contextText}
-    
-    User Query: ${query}
-  `;
+  // Construct contents with history
+  const contents = [
+    ...history.map(msg => ({
+      role: msg.role === 'model' ? 'model' as const : 'user' as const,
+      parts: [{ text: msg.text }]
+    })),
+    {
+      role: 'user' as const,
+      parts: [{ 
+        text: `
+          ${profileContext}
+          
+          Retrieved Medical Context:
+          ${contextText}
+          
+          User Query: ${query}
+        ` 
+      }]
+    }
+  ];
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: prompt,
+    contents,
     config: {
       systemInstruction
     }

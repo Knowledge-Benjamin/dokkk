@@ -53,7 +53,8 @@ export default function Chat() {
     try {
       // RAG Flow
       const context = await searchContext(input);
-      const responseText = await generateGroundedResponse(input, context);
+      const history = messages.map(m => ({ role: m.role, text: m.text }));
+      const responseText = await generateGroundedResponse(input, context, history);
 
       const botMsg: ChatMessage = {
         id: uuidv4(),
