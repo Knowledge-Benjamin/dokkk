@@ -1,16 +1,19 @@
 import { useState, useEffect } from 'react';
-import { User, Shield, History, Download, Trash2, Save, CheckCircle2, Activity, Database, Loader2 } from 'lucide-react';
+import { User, Shield, History, Download, Trash2, Save, CheckCircle2, Activity, Database, Loader2, Globe } from 'lucide-react';
 import { getProfile, saveProfile, getAuditLogs, getAllRecords, logAction, wipeAllData } from '../lib/db';
 import { UserProfile, AuditLog } from '../types';
 import { format } from 'date-fns';
 import { seedMedicalDatabase } from '../lib/seed';
+import { useTranslation, Language } from '../lib/translations';
 
 export default function Settings() {
   const [profile, setProfile] = useState<UserProfile>({
     name: '',
     allergies: [],
     chronicConditions: [],
+    language: 'en'
   });
+  const { t } = useTranslation(profile.language);
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
@@ -32,7 +35,10 @@ export default function Settings() {
     await logAction('access', 'Updated user profile');
     setIsSaving(false);
     setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
+    setTimeout(() => {
+      setShowSuccess(false);
+      window.location.reload(); // Reload to apply language changes globally
+    }, 1000);
   };
 
   const handleExportData = async () => {
@@ -74,7 +80,7 @@ export default function Settings() {
   return (
     <div className="p-8 max-w-5xl mx-auto">
       <header className="mb-10">
-        <h2 className="text-3xl font-bold text-slate-900 mb-2">Vault Settings</h2>
+        <h2 className="text-3xl font-bold text-slate-900 mb-2">{t.settings}</h2>
         <p className="text-slate-500">Manage your identity, security, and data portability.</p>
       </header>
 
@@ -84,12 +90,12 @@ export default function Settings() {
           <section className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
             <h3 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
               <User className="text-teal-600" size={24} />
-              Patient Profile
+              {t.patientProfile}
             </h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Full Name</label>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">{t.fullName}</label>
                 <input 
                   type="text"
                   value={profile.name}
@@ -98,7 +104,7 @@ export default function Settings() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Blood Type</label>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">{t.bloodType}</label>
                 <input 
                   type="text"
                   value={profile.bloodType}
@@ -108,8 +114,27 @@ export default function Settings() {
               </div>
             </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">{t.language}</label>
+                <div className="relative">
+                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                  <select 
+                    value={profile.language || 'en'}
+                    onChange={(e) => setProfile({ ...profile, language: e.target.value as Language })}
+                    className="w-full pl-10 pr-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-teal-500 outline-none appearance-none"
+                  >
+                    <option value="en">English</option>
+                    <option value="es">Español</option>
+                    <option value="fr">Français</option>
+                    <option value="de">Deutsch</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
             <div className="mb-6">
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Allergies (comma separated)</label>
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">{t.knownAllergies} ({t.fullName})</label>
               <input 
                 type="text"
                 value={profile.allergies.join(', ')}
@@ -119,7 +144,7 @@ export default function Settings() {
             </div>
 
             <div className="mb-8">
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Chronic Conditions (comma separated)</label>
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">{t.chronicConditions}</label>
               <input 
                 type="text"
                 value={profile.chronicConditions.join(', ')}
@@ -134,7 +159,7 @@ export default function Settings() {
               className="flex items-center justify-center gap-2 w-full py-4 bg-teal-600 text-white font-bold rounded-2xl hover:bg-teal-700 transition-all"
             >
               {showSuccess ? <CheckCircle2 size={20} /> : <Save size={20} />}
-              {showSuccess ? 'Profile Updated' : 'Save Profile Changes'}
+              {showSuccess ? t.profileUpdated : t.saveProfile}
             </button>
           </section>
 
@@ -142,7 +167,7 @@ export default function Settings() {
           <section className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
             <h3 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
               <History className="text-teal-600" size={24} />
-              Security Audit Log
+              {t.securityAudit}
             </h3>
             <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
               {logs.map((log) => (
@@ -166,7 +191,7 @@ export default function Settings() {
           {/* Security Card */}
           <section className="bg-teal-900 text-white rounded-3xl p-8 shadow-lg">
             <Shield className="text-teal-300 mb-4" size={32} />
-            <h3 className="text-xl font-bold mb-2">Vault Security</h3>
+            <h3 className="text-xl font-bold mb-2">{t.vaultSecurity}</h3>
             <p className="text-teal-100 text-sm mb-6">
               Your data is stored strictly on this device using AES-256 encryption. No cloud sync is active.
             </p>
@@ -188,7 +213,7 @@ export default function Settings() {
 
           {/* Data Portability */}
           <section className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
-            <h3 className="text-lg font-bold text-slate-900 mb-4">Data Portability</h3>
+            <h3 className="text-lg font-bold text-slate-900 mb-4">{t.dataPortability}</h3>
             <p className="text-slate-500 text-sm mb-6">
               Download your entire medical vault as a JSON file for backup or transfer to another device.
             </p>
@@ -198,7 +223,7 @@ export default function Settings() {
                 className="flex items-center justify-center gap-2 w-full py-3 border-2 border-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-50 transition-all"
               >
                 <Download size={20} />
-                Export Vault
+                {t.exportVault}
               </button>
               <button 
                 onClick={handleSeedData}
@@ -206,12 +231,12 @@ export default function Settings() {
                 className="flex items-center justify-center gap-2 w-full py-3 bg-teal-50 text-teal-600 font-bold rounded-xl hover:bg-teal-100 transition-all"
               >
                 {isSeeding ? <Loader2 size={20} className="animate-spin" /> : <Database size={20} />}
-                {isSeeding ? 'Seeding Data...' : 'Seed Sample Records'}
+                {isSeeding ? t.seeding : t.seedData}
               </button>
             </div>
             
             <div className="mt-8 pt-8 border-t border-slate-100">
-              <h4 className="text-rose-600 font-bold mb-2">Danger Zone</h4>
+              <h4 className="text-rose-600 font-bold mb-2">{t.dangerZone}</h4>
               <p className="text-slate-500 text-xs mb-4">
                 Permanently delete all records and history. This action cannot be undone.
               </p>
@@ -220,7 +245,7 @@ export default function Settings() {
                 className="flex items-center justify-center gap-2 w-full py-3 bg-rose-50 text-rose-600 font-bold rounded-xl hover:bg-rose-100 transition-all"
               >
                 <Trash2 size={20} />
-                Wipe Local Vault
+                {t.wipeVault}
               </button>
             </div>
           </section>

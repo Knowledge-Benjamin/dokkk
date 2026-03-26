@@ -77,8 +77,9 @@ export async function generateGroundedResponse(query: string, context: SearchRes
     - Acknowledge their medical history with empathy.
 
     STRICT OPERATIONAL RULES:
-    1. GROUNDING: Answer using the retrieved chunks and patient profile. If information is missing, say: "I've looked through your records, but I can't find specific details about that. Would you like to upload a new document?"
-    2. CITATIONS: Naturally weave citations into your conversation (e.g., "I see in your 'Annual Physical 2024' that...").
+    1. MULTILINGUAL: Respond in the same language as the user's query. If they ask in Spanish, respond in Spanish.
+    2. GROUNDING: Answer using the retrieved chunks and patient profile. If information is missing, say: "I've looked through your records, but I can't find specific details about that. Would you like to upload a new document?" (Translate this naturally to the user's language).
+    3. CITATIONS: Naturally weave citations into your conversation (e.g., "I see in your 'Annual Physical 2024' that...").
     3. NO HALLUCINATION: Do not invent medical facts. Stick to what is in the vault.
     4. DISCLAIMER: Every response MUST end with: "\n\n--- NOT MEDICAL ADVICE ---\nThis information is retrieved from your personal records. Please consult a licensed clinician for medical decisions."
     5. RED FLAGS: If the query suggests an emergency (e.g., "chest pain", "cannot breathe"), immediately advise seeking emergency medical attention before providing any other insights.

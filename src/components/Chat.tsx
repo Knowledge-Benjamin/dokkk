@@ -7,10 +7,12 @@ import { searchContext, generateGroundedResponse } from '../lib/ai';
 import { v4 as uuidv4 } from 'uuid';
 import { motion, AnimatePresence } from 'motion/react';
 import { seedMedicalDatabase } from '../lib/seed';
+import { useTranslation } from '../lib/translations';
 
 export default function Chat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const { t } = useTranslation(profile?.language || 'en');
   const [input, setInput] = useState('');
   const [isThinking, setIsThinking] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
@@ -56,7 +58,7 @@ export default function Chat() {
       const botMsg: ChatMessage = {
         id: uuidv4(),
         role: 'model',
-        text: responseText || 'I could not find information related to your query in your records.',
+        text: responseText || t.noInfoFound,
         timestamp: new Date().toISOString(),
         sources: context.map(c => c.recordId)
       };
@@ -65,7 +67,7 @@ export default function Chat() {
       await saveMessage(botMsg);
     } catch (err) {
       console.error(err);
-      setError('The Medical Brain encountered an error. Please ensure you have uploaded records and try again.');
+      setError(t.errorBrain);
     } finally {
       setIsThinking(false);
     }
@@ -79,13 +81,13 @@ export default function Chat() {
             <Bot size={24} />
           </div>
           <div>
-            <h2 className="font-bold text-slate-900">Medical Brain</h2>
-            <p className="text-xs text-teal-600 font-bold uppercase tracking-wider">Grounded RAG Mode</p>
+            <h2 className="font-bold text-slate-900">{t.medicalBrain}</h2>
+            <p className="text-xs text-teal-600 font-bold uppercase tracking-wider">{t.groundedMode}</p>
           </div>
         </div>
         <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 rounded-full text-amber-700 text-xs font-bold border border-amber-100">
           <Info size={14} />
-          Offline Context Only
+          {t.offlineOnly}
         </div>
       </header>
 
@@ -96,10 +98,10 @@ export default function Chat() {
               <Activity size={32} />
             </div>
             <h3 className="text-xl font-bold text-slate-900 mb-2">
-              {profile?.name ? `Hello, ${profile.name.split(' ')[0]}` : 'Ask your Medical Brain'}
+              {profile?.name ? `${t.hello}, ${profile.name.split(' ')[0]}` : t.askBrain}
             </h3>
             <p className="text-slate-500 mb-6">
-              I'm here to help you understand your medical history. I can answer questions about your medications, treatments, and past visits based strictly on your vault.
+              {t.chatDescription}
             </p>
             {!hasRecords && (
               <button 
@@ -118,7 +120,7 @@ export default function Chat() {
                 className="flex items-center gap-2 px-6 py-3 bg-teal-600 text-white font-bold rounded-xl hover:bg-teal-700 transition-all disabled:opacity-50"
               >
                 {isSeeding ? <Loader2 size={20} className="animate-spin" /> : <Database size={20} />}
-                {isSeeding ? 'Seeding...' : 'Seed Sample Data to Start'}
+                {isSeeding ? t.seeding : t.seedData}
               </button>
             )}
           </div>
@@ -147,7 +149,7 @@ export default function Chat() {
                 </div>
                 {msg.sources && msg.sources.length > 0 && (
                   <div className="mt-4 pt-4 border-t border-slate-100 flex flex-wrap gap-2">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest w-full">Sources</span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest w-full">{t.sources}</span>
                     {Array.from(new Set(msg.sources)).map((source, i) => (
                       <span key={i} className="px-2 py-0.5 bg-slate-100 rounded text-[10px] font-medium text-slate-500">
                         {source.slice(0, 8)}...
@@ -167,7 +169,7 @@ export default function Chat() {
             </div>
             <div className="bg-white border border-teal-100 p-4 rounded-2xl flex items-center gap-3">
               <Loader2 className="animate-spin text-teal-600" size={18} />
-              <span className="text-sm font-medium text-slate-500">Retrieving records and thinking...</span>
+              <span className="text-sm font-medium text-slate-500">{t.thinking}</span>
             </div>
           </div>
         )}
@@ -186,7 +188,7 @@ export default function Chat() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Ask about your medical history..."
+            placeholder={t.askPlaceholder}
             className="w-full pl-6 pr-14 py-4 bg-slate-50 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all"
           />
           <button

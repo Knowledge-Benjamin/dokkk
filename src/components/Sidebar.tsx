@@ -4,6 +4,7 @@ import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { getProfile } from '../lib/db';
 import { UserProfile } from '../types';
+import { useTranslation } from '../lib/translations';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -16,6 +17,7 @@ interface SidebarProps {
 
 export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const { t } = useTranslation(profile?.language || 'en');
 
   useEffect(() => {
     async function load() {
@@ -26,11 +28,11 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
   }, []);
 
   const tabs = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'chat', label: 'Medical Brain', icon: MessageSquare },
-    { id: 'upload', label: 'Ingestion', icon: FileUp },
-    { id: 'timeline', label: 'Timeline', icon: Activity },
-    { id: 'settings', label: 'Vault Settings', icon: SettingsIcon },
+    { id: 'dashboard', label: t.dashboard, icon: LayoutDashboard },
+    { id: 'chat', label: t.medicalBrain, icon: MessageSquare },
+    { id: 'upload', label: t.ingestion, icon: FileUp },
+    { id: 'timeline', label: t.timeline, icon: Activity },
+    { id: 'settings', label: t.settings, icon: SettingsIcon },
   ];
 
   return (
@@ -74,15 +76,15 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
             </div>
             <div className="overflow-hidden">
               <p className="text-xs font-bold text-slate-900 truncate">{profile.name}</p>
-              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Patient</p>
+              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">{t.patient}</p>
             </div>
           </div>
         )}
         <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">
           <Shield size={12} className="text-teal-600" />
-          Security Status
+          {t.security}
         </div>
-        <p className="text-xs text-slate-600 font-medium">AES-256 Active</p>
+        <p className="text-xs text-slate-600 font-medium">{t.encrypted}</p>
         <p className="text-[10px] text-slate-400">Local Storage Only</p>
       </div>
     </div>

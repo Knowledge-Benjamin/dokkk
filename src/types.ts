@@ -49,6 +49,7 @@ export interface AuditLog {
 
 export interface UserProfile {
   name: string;
+  language?: 'en' | 'es' | 'fr' | 'de';
   dateOfBirth?: string;
   bloodType?: string;
   allergies: string[];

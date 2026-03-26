@@ -1,7 +1,7 @@
 import { createWorker } from 'tesseract.js';
 
 export async function performOCR(imageSource: string | File): Promise<string> {
-  const worker = await createWorker('eng');
+  const worker = await createWorker('eng+spa+fra+deu');
   const { data: { text } } = await worker.recognize(imageSource);
   await worker.terminate();
   return text;
