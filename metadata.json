@@ -1,0 +1,8 @@
+{
+  "name": "PMI Offline Medical Brain",
+  "description": "A 100% offline, patient-owned medical intelligence system using RAG to parse records and provide grounded health insights.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
